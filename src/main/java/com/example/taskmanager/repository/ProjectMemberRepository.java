@@ -1,6 +1,6 @@
 package com.example.taskmanager.repository;
 
-import com.example.taskmanager.dto.response.ProjectMemberDTO;
+
 import com.example.taskmanager.entity.ProjectMember;
 import com.example.taskmanager.enums.ProjectRole;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +14,6 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
     boolean existsByProjectIdAndUserUsernameAndRole(Long projectId, String username, ProjectRole role);
     List<ProjectMember> findByProjectId(Long projectId);
     Optional<ProjectMember> findByProjectIdAndUserId(Long projectId, Long userId);
+
+    boolean existsByProjectIdAndUserId(Long projectId, Long id);
 }

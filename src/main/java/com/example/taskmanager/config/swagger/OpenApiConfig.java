@@ -10,7 +10,6 @@ public class OpenApiConfig {
 
     @Bean
     public OpenAPI customOpenAPI() {
-
         return new OpenAPI()
                 .info(new Info()
                         .title("Task Manager API")
@@ -18,5 +17,4 @@ public class OpenApiConfig {
                         .description("API for Task Management System")
                 );
     }
-
 }
