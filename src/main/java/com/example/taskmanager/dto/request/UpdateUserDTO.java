@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -22,7 +23,7 @@ public class UpdateUserDTO {
     private String fullName;
     private String address;
     private Gender gender;
-    private LocalDateTime dob;
+    private LocalDate dob;
 
     @NotBlank(message = "Username cannot be empty")
     private String username;
