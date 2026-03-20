@@ -22,6 +22,10 @@ public class UserController {
 
     @GetMapping("/me")
     public UserDTO getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            System.out.println("null userDetails");
+        }
+        System.out.println("userDetails: " + userDetails.getUsername());
         return userService.getByUsername(userDetails.getUsername());
     }
 

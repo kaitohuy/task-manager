@@ -35,6 +35,9 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("Email already exists");
         }
+        if (userRepository.existsByPhone(request.getPhone())) {
+            throw new BadRequestException("Phone number already exists");
+        }
         User user = userMapper.toEntity(request);
         if (request.getRoles().isEmpty()) {
             Set<Role> roles = new HashSet<>();
@@ -94,6 +97,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDTO getByUsername(String username) {
+        System.out.println("username: " + username);
         User user = userRepository.findByUsername(username).orElseThrow(()-> new ResourceNotFoundException("User not found"));
         return userMapper.toDTO(user);
     }
