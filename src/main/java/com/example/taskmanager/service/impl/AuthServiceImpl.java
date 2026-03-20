@@ -33,8 +33,8 @@ public class AuthServiceImpl implements AuthService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getIdentifier());
         String token = jwtUtil.generateToken(userDetails);
         return new AuthResponse(
-                token,
-                userDetails.getUsername()
+                userDetails.getUsername(),
+                token
         );
     }
 
