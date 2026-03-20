@@ -4,9 +4,12 @@ import com.example.taskmanager.dto.request.ChangePasswordDTO;
 import com.example.taskmanager.dto.request.CreateUserDTO;
 import com.example.taskmanager.dto.request.UpdateUserDTO;
 import com.example.taskmanager.dto.response.UserDTO;
+import com.example.taskmanager.entity.User;
 import com.example.taskmanager.service.interfaces.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -42,8 +45,8 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
-        List<UserDTO> users = userService.getAllUsers();
+    public ResponseEntity<Page<UserDTO>> getAllUsers(Pageable pageable) {
+        Page<UserDTO> users = userService.getAllUser(pageable);
         return ResponseEntity.ok(users);
     }
 
