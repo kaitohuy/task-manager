@@ -12,11 +12,12 @@ import com.example.taskmanager.mapper.UserMapper;
 import com.example.taskmanager.repository.UserRepository;
 import com.example.taskmanager.service.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Service
@@ -54,10 +55,11 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return userMapper.toDTO(user);
     }
-
+    
     @Override
-    public List<UserDTO> getAllUsers() {
-        return userRepository.findAll().stream().map(userMapper::toDTO).toList();
+    public Page<UserDTO> getAllUser(Pageable pageable) {
+        Page<User> userPage = userRepository.findAll(pageable);
+        return userPage.map(userMapper::toDTO);
     }
 
     @Override
