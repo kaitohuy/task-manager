@@ -32,4 +32,6 @@ public class CreateTaskDTO {
 
     @NotNull(message = "Project id required")
     private Long projectId;
+
+    private Long assigneeId;
 }

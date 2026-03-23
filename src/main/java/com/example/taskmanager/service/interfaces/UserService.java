@@ -4,6 +4,8 @@ import com.example.taskmanager.dto.request.ChangePasswordDTO;
 import com.example.taskmanager.dto.request.CreateUserDTO;
 import com.example.taskmanager.dto.request.UpdateUserDTO;
 import com.example.taskmanager.dto.response.UserDTO;
+import com.example.taskmanager.enums.Gender;
+import com.example.taskmanager.enums.Role;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -18,4 +20,5 @@ public interface UserService {
     void changePassword(Long userId, ChangePasswordDTO request);
     UserDTO getByUsername(String username);
     Page<UserDTO> getAllUser(Pageable pageable);
+    Page<UserDTO> searchAdvanceUsers(String keyword, Gender gender, Role role, Pageable pageable);
 }

@@ -7,13 +7,16 @@ import com.example.taskmanager.dto.request.CreateUserDTO;
 import com.example.taskmanager.dto.request.UpdateUserDTO;
 import com.example.taskmanager.dto.response.UserDTO;
 import com.example.taskmanager.entity.User;
+import com.example.taskmanager.enums.Gender;
 import com.example.taskmanager.enums.Role;
 import com.example.taskmanager.mapper.UserMapper;
 import com.example.taskmanager.repository.UserRepository;
 import com.example.taskmanager.service.interfaces.UserService;
+import com.example.taskmanager.spec.UserSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +35,6 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new BadRequestException("Username already exists");
         }
-
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("Email already exists");
         }
@@ -60,6 +62,14 @@ public class UserServiceImpl implements UserService {
     public Page<UserDTO> getAllUser(Pageable pageable) {
         Page<User> userPage = userRepository.findAll(pageable);
         return userPage.map(userMapper::toDTO);
+    }
+
+    @Override
+    public Page<UserDTO> searchAdvanceUsers(String keyword, Gender gender, Role role, Pageable pageable) {
+        Specification<User> spec = Specification.where(UserSpecification.hasKeyword(keyword))
+                .and(UserSpecification.hasGender(gender))
+                .and(UserSpecification.hasRole(role));
+        return userRepository.findAll(spec, pageable).map(userMapper::toDTO);
     }
 
     @Override

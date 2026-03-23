@@ -2,15 +2,20 @@ package com.example.taskmanager.controller;
 
 import com.example.taskmanager.dto.request.ChangePasswordDTO;
 import com.example.taskmanager.dto.request.CreateUserDTO;
+import com.example.taskmanager.dto.request.SearchTaskDTO;
 import com.example.taskmanager.dto.request.UpdateUserDTO;
+import com.example.taskmanager.dto.response.TaskDTO;
 import com.example.taskmanager.dto.response.UserDTO;
 import com.example.taskmanager.entity.User;
+import com.example.taskmanager.enums.Gender;
+import com.example.taskmanager.enums.Role;
 import com.example.taskmanager.service.interfaces.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -25,10 +30,6 @@ public class UserController {
 
     @GetMapping("/me")
     public UserDTO getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
-        if (userDetails == null) {
-            System.out.println("null userDetails");
-        }
-        System.out.println("userDetails: " + userDetails.getUsername());
         return userService.getByUsername(userDetails.getUsername());
     }
 
@@ -66,5 +67,10 @@ public class UserController {
     public ResponseEntity<Void> changePassword(@PathVariable Long id, @Valid @RequestBody ChangePasswordDTO request) {
         userService.changePassword(id, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/search-advanced")
+    public ResponseEntity<Page<UserDTO>> searchUser(String keyword, Gender gender, Role role, Pageable pageable) {
+        return ResponseEntity.ok(userService.searchAdvanceUsers(keyword, gender, role, pageable));
     }
 }

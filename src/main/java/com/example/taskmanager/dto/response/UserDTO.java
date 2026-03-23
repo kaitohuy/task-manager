@@ -25,4 +25,5 @@ public class UserDTO {
     private String address;
     private Gender gender;
     private LocalDate dob;
+    private String imageUrl;
 }

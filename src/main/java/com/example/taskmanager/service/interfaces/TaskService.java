@@ -16,4 +16,6 @@ public interface TaskService {
     Page<TaskDTO> searchTasks(SearchTaskDTO request, Pageable pageable);
     TaskDTO updateTask(Long id, CreateTaskDTO request);
     void deleteTask(Long id);
+    Page<TaskDTO> getAllTasks(Pageable pageable);
+    TaskDTO updateTaskStatus(Long id, TaskStatus status);
 }

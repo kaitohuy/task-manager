@@ -19,7 +19,4 @@ public class CreateProjectDTO {
 
     @Length(max = 500, message = "description too long")
     private String description;
-
-    @NotNull(message = "user's ID is required")
-    private Long createdById;
 }

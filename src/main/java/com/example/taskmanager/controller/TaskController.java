@@ -26,6 +26,12 @@ public class TaskController {
         return ResponseEntity.ok(taskService.createTask(request));
     }
 
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ResponseEntity<Page<TaskDTO>> getAllTasks(Pageable pageable) {
+        return ResponseEntity.ok(taskService.getAllTasks(pageable));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("@projectSecurity.isMemberByTaskId(#id, authentication)")
     public ResponseEntity<TaskDTO> getTaskById(@PathVariable Long id) {
@@ -51,8 +57,8 @@ public class TaskController {
     }
 
     @GetMapping("/search-advanced")
-    @PreAuthorize("@projectSecurity.isMember(#projectId, authentication)")
-    public ResponseEntity<Page<TaskDTO>> searchTasks(SearchTaskDTO request, Pageable pageable) {
+    @PreAuthorize("@projectSecurity.isMember(#request.projectId, authentication)")
+    public ResponseEntity<Page<TaskDTO>> searchTasksAdvanced(SearchTaskDTO request, Pageable pageable) {
         return ResponseEntity.ok(taskService.searchTasks(request, pageable));
     }
 
@@ -68,4 +74,14 @@ public class TaskController {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("@projectSecurity.isMemberByTaskId(#id, authentication)")
+    public ResponseEntity<TaskDTO> updateTaskStatus(
+            @PathVariable Long id,
+            @RequestParam TaskStatus status) {
+        return ResponseEntity.ok(taskService.updateTaskStatus(id, status));
+    }
+
+
 }
