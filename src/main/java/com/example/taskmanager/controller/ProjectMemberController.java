@@ -23,27 +23,27 @@ public class ProjectMemberController {
     private final ProjectMemberService projectMemberService;
 
     @PostMapping("/{id}/members")
-    @PreAuthorize("@projectSecurity.isLeader(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isLeader(#id, authentication)")
     public ResponseEntity<ProjectMemberDTO> addMember(@PathVariable Long id, @RequestBody AddMemberDTO request) {
         ProjectMemberDTO member = projectMemberService.addMember(id, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(member);
     }
 
     @DeleteMapping("/{id}/members/{userId}")
-    @PreAuthorize("@projectSecurity.isLeader(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isLeader(#id, authentication)")
     public ResponseEntity<Void> removeMember(@PathVariable Long id, @PathVariable Long userId) {
         projectMemberService.removeMember(id, userId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/members")
-    @PreAuthorize("@projectSecurity.isMember(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMember(#id, authentication)")
     public ResponseEntity<Page<ProjectMemberDTO>> getMembers(@PathVariable Long id, Pageable pageable) {
         return ResponseEntity.ok(projectMemberService.getMembers(id, pageable));
     }
 
     @PutMapping("/{id}/members/{userId}/role")
-    @PreAuthorize("@projectSecurity.isLeader(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isLeader(#id, authentication)")
     public ResponseEntity<ProjectMemberDTO> updateMemberRole(
             @PathVariable Long id,
             @PathVariable Long userId,
@@ -52,7 +52,7 @@ public class ProjectMemberController {
     }
 
     @GetMapping("/{id}/available-users")
-    @PreAuthorize("@projectSecurity.isLeader(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isLeader(#id, authentication)")
     public ResponseEntity<List<UserDTO>> getAvailableUsers(@PathVariable Long id) {
         return ResponseEntity.ok(projectMemberService.getAvailableUsersToAdd(id));
     }
