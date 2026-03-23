@@ -27,8 +27,12 @@ public class User {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
+    @CollectionTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "role"})
+    )
     private Set<Role> roles;
 
     @Column(name = "username")
@@ -56,14 +60,13 @@ public class User {
     @Column(name = "address")
     private String address;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ProjectMember> projectMemberships;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JsonIgnore()
-    private List<TaskAssignment> taskAssignments;
-
-    @OneToMany(mappedBy = "assignedBy", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<TaskAssignment> assignedTasks;
+    private List<Task> myTasks;
 }

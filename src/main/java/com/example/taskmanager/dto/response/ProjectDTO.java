@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -17,4 +18,6 @@ public class ProjectDTO {
     private String description;
     private LocalDateTime createdAt;
     private UserDTO createdBy;
+    private int memberCount;
+    private List<MemberAvatarDTO> memberAvatars;
 }

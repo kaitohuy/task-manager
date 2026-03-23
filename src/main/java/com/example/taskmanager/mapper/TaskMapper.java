@@ -8,11 +8,14 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring", uses = {UserMapper.class, ProjectMapper.class})
 public interface TaskMapper {
+
+    @Mapping(source = "project.id", target = "projectId")
+    @Mapping(source = "project.name", target = "projectName")
     TaskDTO toDTO(Task task);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "assignees", ignore = true)
+    @Mapping(target = "assignee", ignore = true)
     @Mapping(target = "project", ignore = true)
     Task toEntity(CreateTaskDTO request);
 }

@@ -18,8 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class ProjectMemberDTO {
     private Long id;
-    private Long userId;
-    private String username;
+    private UserDTO user;
     private ProjectRole role;
     private LocalDateTime joinedAt;
 }

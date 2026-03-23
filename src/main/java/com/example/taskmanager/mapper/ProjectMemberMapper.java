@@ -9,8 +9,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface ProjectMemberMapper {
 
-    @Mapping(target = "userId", source = "user.id")
-    @Mapping(target = "username", source = "user.username")
+    @Mapping(target = "user", source = "user")
     ProjectMemberDTO toDTO(ProjectMember projectMember);
-
 }

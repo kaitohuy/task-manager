@@ -1,8 +1,10 @@
 package com.example.taskmanager.service.impl;
 
 import com.example.taskmanager.config.exception.ResourceNotFoundException;
+import com.example.taskmanager.dto.projection.TaskStatusStats;
 import com.example.taskmanager.dto.request.CreateProjectDTO;
 import com.example.taskmanager.dto.response.ProjectDTO;
+import com.example.taskmanager.dto.response.ProjectDashboardStatsDTO;
 import com.example.taskmanager.entity.Project;
 import com.example.taskmanager.entity.ProjectMember;
 import com.example.taskmanager.entity.User;
@@ -10,11 +12,13 @@ import com.example.taskmanager.enums.ProjectRole;
 import com.example.taskmanager.mapper.ProjectMapper;
 import com.example.taskmanager.repository.ProjectMemberRepository;
 import com.example.taskmanager.repository.ProjectRepository;
+import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.repository.UserRepository;
 import com.example.taskmanager.service.interfaces.ProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,12 +29,13 @@ public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
     private final ProjectMapper projectMapper;
     private final ProjectMemberRepository projectMemberRepository;
 
     @Override
-    public ProjectDTO createProject(CreateProjectDTO request) {
-        User user = userRepository.findById(request.getCreatedById()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    public ProjectDTO createProject(CreateProjectDTO request, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Project project = projectMapper.toEntity(request);
         project.setCreatedBy(user);
         project.setCreatedAt(LocalDateTime.now());
@@ -51,8 +56,8 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public Page<ProjectDTO> getProjectsByUser(Long userId, Pageable pageable) {
-        Page<Project> projects = projectRepository.findByCreatedById(userId, pageable);
+    public Page<ProjectDTO> getAllProjects(Pageable pageable) {
+        Page<Project> projects = projectRepository.findAll(pageable);
         return projects.map(projectMapper::toDTO);
     }
 
@@ -75,7 +80,27 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public Page<ProjectDTO> getProjectsByUsername(String username, Pageable pageable) {
-        Page<Project> projects = projectRepository.findByCreatedByUsername(username, pageable);
+        Page<Project> projects = projectRepository.findProjectsByMemberUsername(username, pageable);
         return projects.map(projectMapper::toDTO);
+    }
+
+    @Override
+    public ProjectDashboardStatsDTO getProjectStats(Long projectId) {
+        if (!projectRepository.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found");
+        }
+
+        long memberCount = projectMemberRepository.countByProjectId(projectId);
+        TaskStatusStats stats = taskRepository.getProjectTaskStats(projectId);
+
+        return ProjectDashboardStatsDTO.builder()
+                .totalMembers(memberCount)
+                .totalTasks(stats != null && stats.getTotal() != null ? stats.getTotal() : 0)
+                .tasksTodo(stats != null && stats.getTodo() != null ? stats.getTodo() : 0)
+                .tasksInProgress(stats != null && stats.getInProgress() != null ? stats.getInProgress() : 0)
+                .tasksDone(stats != null && stats.getDone() != null ? stats.getDone() : 0)
+                .tasksPaused(stats != null && stats.getPaused() != null ? stats.getPaused() : 0)
+                .tasksCancelled(stats != null && stats.getCancelled() != null ? stats.getCancelled() : 0)
+                .build();
     }
 }
