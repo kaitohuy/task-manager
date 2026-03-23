@@ -25,7 +25,7 @@ public class TaskCommentController {
     private final UserRepository userRepository;
 
     @GetMapping("/tasks/{taskId}/comments")
-    @PreAuthorize("@projectSecurity.isMemberByTaskId(#taskId, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMemberByTaskId(#taskId, authentication)")
     public ResponseEntity<Page<CommentResponseDTO>> getTopLevelComments(
             @PathVariable Long taskId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -40,7 +40,7 @@ public class TaskCommentController {
     }
 
     @PostMapping("/tasks/{taskId}/comments")
-    @PreAuthorize("@projectSecurity.isMemberByTaskId(#taskId, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMemberByTaskId(#taskId, authentication)")
     public ResponseEntity<CommentResponseDTO> addComment(
             @PathVariable Long taskId,
             @Valid @RequestBody CreateCommentDTO request,
