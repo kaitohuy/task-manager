@@ -11,7 +11,14 @@ public class CorsConfig {
     @Bean
     public WebMvcConfigurer corsConfigurer() {
 
+<<<<<<< Updated upstream
         return new WebMvcConfigurer() {
+=======
+        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+>>>>>>> Stashed changes
 
             @Override
             public void addCorsMappings(CorsRegistry registry) {
