@@ -7,4 +7,6 @@ public interface DashboardService {
 
     AdminDashboardStatsDTO getAdminStats();
     ManagerDashboardStatsDTO getManagerStats(String username);
+    void broadcastAdminStats();
+    void broadcastManagerStats(String username);
 }
