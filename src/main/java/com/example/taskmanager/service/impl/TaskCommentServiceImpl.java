@@ -13,6 +13,7 @@ import com.example.taskmanager.service.interfaces.TaskCommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ public class TaskCommentServiceImpl implements TaskCommentService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final CommentMapper commentMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional(readOnly = true)
@@ -60,7 +62,9 @@ public class TaskCommentServiceImpl implements TaskCommentService {
         }
 
         TaskComment savedComment = commentRepository.save(comment);
-        return commentMapper.toDto(savedComment);
+        CommentResponseDTO responseDTO = commentMapper.toDto(comment);
+        messagingTemplate.convertAndSend("/topic/tasks/" + taskId + "/comments", responseDTO);
+        return responseDTO;
     }
 
     @Override

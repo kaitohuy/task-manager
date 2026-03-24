@@ -7,11 +7,13 @@ import com.example.taskmanager.dto.response.TaskDTO;
 import com.example.taskmanager.entity.Project;
 import com.example.taskmanager.entity.Task;
 import com.example.taskmanager.entity.User;
+import com.example.taskmanager.enums.ProjectRole;
 import com.example.taskmanager.enums.TaskStatus;
 import com.example.taskmanager.mapper.TaskMapper;
 import com.example.taskmanager.repository.ProjectRepository;
 import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.repository.UserRepository;
+import com.example.taskmanager.service.interfaces.DashboardService;
 import com.example.taskmanager.service.interfaces.TaskService;
 import com.example.taskmanager.spec.TaskSpecification;
 import jakarta.transaction.Transactional;
@@ -19,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,6 +33,8 @@ public class TaskServiceImpl implements TaskService {
     private final ProjectRepository projectRepository;
     private final TaskMapper taskMapper;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final DashboardService dashboardService;
 
     @Override
     public TaskDTO createTask(CreateTaskDTO request) {
@@ -41,8 +46,12 @@ public class TaskServiceImpl implements TaskService {
             User assignee = userRepository.findById(request.getAssigneeId()).orElseThrow(() -> new ResourceNotFoundException("Assignee not found"));
             task.setAssignee(assignee);
         }
-        task = taskRepository.save(task);
-        return taskMapper.toDTO(task);
+        Task savedTask = taskRepository.save(task);
+        TaskDTO responseDTO = taskMapper.toDTO(savedTask);
+
+        messagingTemplate.convertAndSend("/topic/projects/" + request.getProjectId() + "/tasks", responseDTO);
+
+        return responseDTO;
     }
 
     @Override
@@ -119,6 +128,14 @@ public class TaskServiceImpl implements TaskService {
     public TaskDTO updateTaskStatus(Long id, TaskStatus status) {
         Task task = taskRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Task not found"));
         task.setStatus(status);
-        return taskMapper.toDTO(taskRepository.save(task));
+        Task savedTask = taskRepository.save(task);
+        TaskDTO responseDTO = taskMapper.toDTO(savedTask);
+        messagingTemplate.convertAndSend("/topic/projects/" + savedTask.getProject().getId() + "/tasks", responseDTO);
+
+        dashboardService.broadcastAdminStats();
+        savedTask.getProject().getMembers().stream()
+                .filter(pm -> pm.getRole() == ProjectRole.LEADER)
+                .forEach(leader -> dashboardService.broadcastManagerStats(leader.getUser().getUsername()));
+        return responseDTO;
     }
 }

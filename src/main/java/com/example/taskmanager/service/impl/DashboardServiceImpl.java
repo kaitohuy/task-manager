@@ -11,6 +11,7 @@ import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.repository.UserRepository;
 import com.example.taskmanager.service.interfaces.DashboardService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final TaskRepository taskRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional(readOnly = true)
     @Override
@@ -68,5 +70,17 @@ public class DashboardServiceImpl implements DashboardService {
                 .myTaskPaused(myStats != null && myStats.getPaused() != null ? myStats.getPaused() : 0)
                 .myTaskCancelled(myStats != null && myStats.getCancelled() != null ? myStats.getCancelled() : 0)
                 .build();
+    }
+
+    @Override
+    public void broadcastAdminStats() {
+        AdminDashboardStatsDTO stats = getAdminStats();
+        messagingTemplate.convertAndSend("/topic/dashboard/admin", stats);
+    }
+
+    @Override
+    public void broadcastManagerStats(String username) {
+        ManagerDashboardStatsDTO stats = getManagerStats(username);
+        messagingTemplate.convertAndSendToUser(username, "/queue/dashboard/manager", stats);
     }
 }
