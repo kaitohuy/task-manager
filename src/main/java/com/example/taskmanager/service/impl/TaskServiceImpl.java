@@ -1,0 +1,124 @@
+package com.example.taskmanager.service.impl;
+
+import com.example.taskmanager.config.exception.ResourceNotFoundException;
+import com.example.taskmanager.dto.request.CreateTaskDTO;
+import com.example.taskmanager.dto.request.SearchTaskDTO;
+import com.example.taskmanager.dto.response.TaskDTO;
+import com.example.taskmanager.entity.Project;
+import com.example.taskmanager.entity.Task;
+import com.example.taskmanager.entity.User;
+import com.example.taskmanager.enums.TaskStatus;
+import com.example.taskmanager.mapper.TaskMapper;
+import com.example.taskmanager.repository.ProjectRepository;
+import com.example.taskmanager.repository.TaskRepository;
+import com.example.taskmanager.repository.UserRepository;
+import com.example.taskmanager.service.interfaces.TaskService;
+import com.example.taskmanager.spec.TaskSpecification;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
+@Service
+@RequiredArgsConstructor
+public class TaskServiceImpl implements TaskService {
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final TaskMapper taskMapper;
+    private final UserRepository userRepository;
+
+    @Override
+    public TaskDTO createTask(CreateTaskDTO request) {
+        Project project = projectRepository.findById(request.getProjectId()).orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        Task task = taskMapper.toEntity(request);
+        task.setProject(project);
+
+        if (request.getAssigneeId() != null) {
+            User assignee = userRepository.findById(request.getAssigneeId()).orElseThrow(() -> new ResourceNotFoundException("Assignee not found"));
+            task.setAssignee(assignee);
+        }
+        task = taskRepository.save(task);
+        return taskMapper.toDTO(task);
+    }
+
+    @Override
+    public TaskDTO getTaskById(Long id) {
+        Task task = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("Task not found"));
+        return taskMapper.toDTO(task);
+    }
+
+    @Override
+    public Page<TaskDTO> getTasksByProject(Long projectId, Pageable pageable) {
+        Page<Task> tasks = taskRepository.findByProjectId(projectId, pageable);
+        return tasks.map(taskMapper::toDTO);
+    }
+
+    @Override
+    public Page<TaskDTO> getTasksByProjectAndStatus(Long projectId, TaskStatus status, Pageable pageable) {
+        Page<Task> tasks = taskRepository.findByProjectIdAndStatus(projectId, status, pageable);
+        return tasks.map(taskMapper::toDTO);
+    }
+
+    @Override
+    public Page<TaskDTO> searchTasks(Long projectId, String keyword, Pageable pageable) {
+        Page<Task> tasks = taskRepository.findByProjectIdAndTitleContaining(projectId, keyword, pageable);
+        return tasks.map(taskMapper::toDTO);
+    }
+
+    @Override
+    public Page<TaskDTO> searchTasks(SearchTaskDTO request, Pageable pageable) {
+        Specification<Task> spec = Specification.where(TaskSpecification.hasProjectId(request.getProjectId()))
+                .and(TaskSpecification.hasStatus(request.getStatus()))
+                .and(TaskSpecification.titleContains(request.getKeyword()))
+                .and(TaskSpecification.fromDeadline(request.getDeadlineFrom()))
+                .and(TaskSpecification.toDeadline(request.getDeadlineTo()));
+
+        return taskRepository.findAll(spec, pageable).map(taskMapper::toDTO);
+    }
+
+    @Override
+    public TaskDTO updateTask(Long id, CreateTaskDTO request) {
+        Task task = taskRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        task.setStatus(request.getStatus());
+        task.setDeadline(request.getDeadline());
+
+        if (request.getAssigneeId() != null) {
+            User assignee = userRepository.findById(request.getAssigneeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Assignee not found"));
+            task.setAssignee(assignee);
+        } else {
+            task.setAssignee(null);
+        }
+
+        task = taskRepository.save(task);
+        return taskMapper.toDTO(task);
+    }
+
+    @Override
+    public void deleteTask(Long id) {
+        if (!taskRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Task not found");
+        }
+        taskRepository.deleteById(id);
+    }
+
+    @Override
+    public Page<TaskDTO> getAllTasks(Pageable pageable) {
+        return taskRepository.findAll(pageable).map(taskMapper::toDTO);
+    }
+
+    @Override
+    @Transactional
+    public TaskDTO updateTaskStatus(Long id, TaskStatus status) {
+        Task task = taskRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+        task.setStatus(status);
+        return taskMapper.toDTO(taskRepository.save(task));
+    }
+}
