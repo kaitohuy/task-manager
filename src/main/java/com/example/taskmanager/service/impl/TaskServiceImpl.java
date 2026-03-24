@@ -50,6 +50,11 @@ public class TaskServiceImpl implements TaskService {
         TaskDTO responseDTO = taskMapper.toDTO(savedTask);
 
         messagingTemplate.convertAndSend("/topic/projects/" + request.getProjectId() + "/tasks", responseDTO);
+        
+        dashboardService.broadcastAdminStats();
+        savedTask.getProject().getMembers().stream()
+                .filter(pm -> pm.getRole() == ProjectRole.LEADER)
+                .forEach(leader -> dashboardService.broadcastManagerStats(leader.getUser().getUsername()));
 
         return responseDTO;
     }
@@ -107,15 +112,29 @@ public class TaskServiceImpl implements TaskService {
         }
 
         task = taskRepository.save(task);
-        return taskMapper.toDTO(task);
+        TaskDTO responseDTO = taskMapper.toDTO(task);
+        messagingTemplate.convertAndSend("/topic/projects/" + task.getProject().getId() + "/tasks", responseDTO);
+
+        dashboardService.broadcastAdminStats();
+        task.getProject().getMembers().stream()
+                .filter(pm -> pm.getRole() == ProjectRole.LEADER)
+                .forEach(leader -> dashboardService.broadcastManagerStats(leader.getUser().getUsername()));
+
+        return responseDTO;
     }
 
     @Override
     public void deleteTask(Long id) {
-        if (!taskRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Task not found");
-        }
+        Task task = taskRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+        Project project = task.getProject();
         taskRepository.deleteById(id);
+
+        messagingTemplate.convertAndSend("/topic/projects/" + project.getId() + "/tasks/delete", id);
+
+        dashboardService.broadcastAdminStats();
+        project.getMembers().stream()
+                .filter(pm -> pm.getRole() == ProjectRole.LEADER)
+                .forEach(leader -> dashboardService.broadcastManagerStats(leader.getUser().getUsername()));
     }
 
     @Override

@@ -82,6 +82,4 @@ public class TaskController {
             @RequestParam TaskStatus status) {
         return ResponseEntity.ok(taskService.updateTaskStatus(id, status));
     }
-
-
 }
