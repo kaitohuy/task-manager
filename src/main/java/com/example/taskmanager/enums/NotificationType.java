@@ -6,5 +6,7 @@ public enum NotificationType {
     NEW_COMMENT,
     PROJECT_INVITE,
     SYSTEM_ALERT,
-    FILE_UPLOAD
+    FILE_UPLOAD,
+    MEETING_INVITE,
+    OTHER
 }
