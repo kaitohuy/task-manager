@@ -4,9 +4,8 @@ import com.example.taskmanager.config.exception.ResourceNotFoundException;
 import com.example.taskmanager.dto.request.CreateTaskDTO;
 import com.example.taskmanager.dto.request.SearchTaskDTO;
 import com.example.taskmanager.dto.response.TaskDTO;
-import com.example.taskmanager.entity.Project;
-import com.example.taskmanager.entity.Task;
-import com.example.taskmanager.entity.User;
+import com.example.taskmanager.entity.*;
+import com.example.taskmanager.enums.NotificationType;
 import com.example.taskmanager.enums.ProjectRole;
 import com.example.taskmanager.enums.TaskStatus;
 import com.example.taskmanager.mapper.TaskMapper;
@@ -14,6 +13,7 @@ import com.example.taskmanager.repository.ProjectRepository;
 import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.repository.UserRepository;
 import com.example.taskmanager.service.interfaces.DashboardService;
+import com.example.taskmanager.service.interfaces.NotificationService;
 import com.example.taskmanager.service.interfaces.TaskService;
 import com.example.taskmanager.spec.TaskSpecification;
 import jakarta.transaction.Transactional;
@@ -22,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -35,6 +36,7 @@ public class TaskServiceImpl implements TaskService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final DashboardService dashboardService;
+    private final NotificationService notificationService;
 
     @Override
     public TaskDTO createTask(CreateTaskDTO request) {
@@ -55,6 +57,16 @@ public class TaskServiceImpl implements TaskService {
         savedTask.getProject().getMembers().stream()
                 .filter(pm -> pm.getRole() == ProjectRole.LEADER)
                 .forEach(leader -> dashboardService.broadcastManagerStats(leader.getUser().getUsername()));
+
+        if (savedTask.getAssignee() != null) {
+            Notification notif = Notification.builder()
+                    .recipient(savedTask.getAssignee())
+                    .type(NotificationType.TASK_ASSIGNED)
+                    .message("You have just assigned new task : " + savedTask.getTitle())
+                    .targetId(savedTask.getId())
+                    .build();
+            notificationService.sendNotification(notif);
+        }
 
         return responseDTO;
     }
@@ -149,12 +161,52 @@ public class TaskServiceImpl implements TaskService {
         task.setStatus(status);
         Task savedTask = taskRepository.save(task);
         TaskDTO responseDTO = taskMapper.toDTO(savedTask);
+
         messagingTemplate.convertAndSend("/topic/projects/" + savedTask.getProject().getId() + "/tasks", responseDTO);
 
         dashboardService.broadcastAdminStats();
         savedTask.getProject().getMembers().stream()
                 .filter(pm -> pm.getRole() == ProjectRole.LEADER)
                 .forEach(leader -> dashboardService.broadcastManagerStats(leader.getUser().getUsername()));
+
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(currentUsername).orElse(null);
+        User assignee = savedTask.getAssignee();
+
+        if (currentUser != null) {
+            boolean isAssigneeActing = assignee != null && assignee.getUsername().equals(currentUsername);
+
+            if (isAssigneeActing) {
+                // assignee update -> notify leader
+                savedTask.getProject().getMembers().stream()
+                        .filter(pm -> pm.getRole() == ProjectRole.LEADER)
+                        .map(ProjectMember::getUser)
+                        .filter(leaderUser -> !leaderUser.getUsername().equals(currentUsername))
+                        .forEach(leaderUser -> {
+                            Notification notif = Notification.builder()
+                                    .recipient(leaderUser)
+                                    .sender(currentUser)
+                                    .type(NotificationType.TASK_STATUS_CHANGED)
+                                    .message(currentUser.getUsername() + " as just changed task '" + savedTask.getTitle() + "' to: " + status)
+                                    .targetId(savedTask.getId())
+                                    .build();
+                            notificationService.sendNotification(notif);
+                        });
+            } else {
+                // Leader update -> notify Assignee
+                if (assignee != null) {
+                    Notification notif = Notification.builder()
+                            .recipient(assignee)
+                            .sender(currentUser)
+                            .type(NotificationType.TASK_STATUS_CHANGED)
+                            .message(currentUser.getUsername() + " has just changed your task '" + savedTask.getTitle() + "' to: " + status)
+                            .targetId(savedTask.getId())
+                            .build();
+                    notificationService.sendNotification(notif);
+                }
+            }
+        }
+
         return responseDTO;
     }
 }

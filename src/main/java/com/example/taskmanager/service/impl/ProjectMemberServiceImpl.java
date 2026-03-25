@@ -5,15 +5,18 @@ import com.example.taskmanager.config.exception.ResourceNotFoundException;
 import com.example.taskmanager.dto.request.AddMemberDTO;
 import com.example.taskmanager.dto.response.ProjectMemberDTO;
 import com.example.taskmanager.dto.response.UserDTO;
+import com.example.taskmanager.entity.Notification;
 import com.example.taskmanager.entity.Project;
 import com.example.taskmanager.entity.ProjectMember;
 import com.example.taskmanager.entity.User;
+import com.example.taskmanager.enums.NotificationType;
 import com.example.taskmanager.enums.ProjectRole;
 import com.example.taskmanager.mapper.ProjectMemberMapper;
 import com.example.taskmanager.mapper.UserMapper;
 import com.example.taskmanager.repository.ProjectMemberRepository;
 import com.example.taskmanager.repository.ProjectRepository;
 import com.example.taskmanager.repository.UserRepository;
+import com.example.taskmanager.service.interfaces.NotificationService;
 import com.example.taskmanager.service.interfaces.ProjectMemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,6 +35,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectMemberMapper projectMemberMapper;
     private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     @Override
     public ProjectMemberDTO addMember(Long projectId, AddMemberDTO request) {
@@ -50,6 +54,15 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         pm.setRole(request.getRole());
 
         projectMemberRepository.save(pm);
+
+        Notification notif = Notification.builder()
+                .recipient(user)
+                .type(NotificationType.PROJECT_INVITE)
+                .message("You have just added to project : " + project.getName())
+                .targetId(project.getId())
+                .build();
+        notificationService.sendNotification(notif);
+
         return projectMemberMapper.toDTO(pm);
     }
 

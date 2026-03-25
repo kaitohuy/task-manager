@@ -2,14 +2,17 @@ package com.example.taskmanager.service.impl;
 
 import com.example.taskmanager.dto.request.CreateAttachmentDTO;
 import com.example.taskmanager.dto.response.AttachmentResponseDTO;
+import com.example.taskmanager.entity.Notification;
 import com.example.taskmanager.entity.Task;
 import com.example.taskmanager.entity.TaskAttachment;
 import com.example.taskmanager.entity.User;
 import com.example.taskmanager.enums.AttachmentType;
+import com.example.taskmanager.enums.NotificationType;
 import com.example.taskmanager.mapper.AttachmentMapper;
 import com.example.taskmanager.repository.TaskAttachmentRepository;
 import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.repository.UserRepository;
+import com.example.taskmanager.service.interfaces.NotificationService;
 import com.example.taskmanager.service.interfaces.TaskAttachmentService;
 import com.example.taskmanager.service.cloudinary.CloudinaryService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,7 @@ public class TaskAttachmentServiceImpl implements TaskAttachmentService {
     private final UserRepository userRepository;
     private final AttachmentMapper attachmentMapper;
     private final CloudinaryService cloudinaryService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,14 +53,26 @@ public class TaskAttachmentServiceImpl implements TaskAttachmentService {
         attachment.setUser(user);
 
         TaskAttachment savedAttachment = attachmentRepository.save(attachment);
+        User recipient = task.getAssignee();
+        if (recipient != null && !recipient.getId().equals(userId)) {
+            Notification notif = Notification.builder()
+                    .recipient(recipient)
+                    .sender(user)
+                    .type(NotificationType.FILE_UPLOAD)
+                    .message(user.getUsername() + " has just uploaded file/url to task : " + task.getTitle())
+                    .targetId(task.getId())
+                    .build();
+            notificationService.sendNotification(notif);
+        }
+
         return attachmentMapper.toDto(savedAttachment);
     }
 
     @Override
     @Transactional
     public AttachmentResponseDTO uploadFile(Long taskId, MultipartFile file, Long userId) {
-        Task task = taskRepository.findById(taskId).orElseThrow(() -> new RuntimeException("Không tìm thấy Task"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Không tìm thấy User"));
+        Task task = taskRepository.findById(taskId).orElseThrow(() -> new RuntimeException("Task not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         String fileUrl = cloudinaryService.uploadFile(file);
         String fileName = file.getOriginalFilename();
@@ -70,6 +86,18 @@ public class TaskAttachmentServiceImpl implements TaskAttachmentService {
                 .build();
 
         TaskAttachment savedAttachment = attachmentRepository.save(attachment);
+        User recipient = task.getAssignee();
+        if (recipient != null && !recipient.getId().equals(userId)) {
+            Notification notif = Notification.builder()
+                    .recipient(recipient)
+                    .sender(user)
+                    .type(NotificationType.FILE_UPLOAD)
+                    .message(user.getUsername() + " has just uploaded file/url to task : " + task.getTitle())
+                    .targetId(task.getId())
+                    .build();
+            notificationService.sendNotification(notif);
+        }
+
         return attachmentMapper.toDto(savedAttachment);
     }
 
