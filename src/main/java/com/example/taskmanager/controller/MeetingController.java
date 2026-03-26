@@ -1,6 +1,7 @@
 package com.example.taskmanager.controller;
 
 import com.example.taskmanager.dto.request.CreateMeetingDTO;
+import com.example.taskmanager.dto.request.UpdateMeetingDTO;
 import com.example.taskmanager.dto.response.MeetingResponseDTO;
 import com.example.taskmanager.service.impl.MeetingServiceImpl;
 import jakarta.validation.Valid;
@@ -21,9 +22,7 @@ public class MeetingController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMember(#request.projectId, authentication)")
-    public ResponseEntity<MeetingResponseDTO> createMeeting(
-            @Valid @RequestBody CreateMeetingDTO request,
-            Authentication authentication) {
+    public ResponseEntity<MeetingResponseDTO> createMeeting(@Valid @RequestBody CreateMeetingDTO request, Authentication authentication) {
         return ResponseEntity.ok(meetingService.createMeeting(request, authentication.getName()));
     }
 
@@ -31,6 +30,12 @@ public class MeetingController {
     @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMember(#projectId, authentication)")
     public ResponseEntity<List<MeetingResponseDTO>> getMeetingsByProject(@PathVariable Long projectId) {
         return ResponseEntity.ok(meetingService.getMeetingsByProject(projectId));
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<MeetingResponseDTO> updateMeeting(@PathVariable Long id, @RequestBody UpdateMeetingDTO request, Authentication authentication) {
+        return ResponseEntity.ok(meetingService.updateMeeting(id, request, authentication.getName()));
     }
 
     @DeleteMapping("/{id}")
