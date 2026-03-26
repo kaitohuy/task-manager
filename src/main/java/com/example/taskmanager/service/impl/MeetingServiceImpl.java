@@ -2,8 +2,8 @@ package com.example.taskmanager.service.impl;
 
 import com.example.taskmanager.config.exception.ResourceNotFoundException;
 import com.example.taskmanager.dto.request.CreateMeetingDTO;
+import com.example.taskmanager.dto.request.UpdateMeetingDTO;
 import com.example.taskmanager.dto.response.MeetingResponseDTO;
-import com.example.taskmanager.dto.response.UserDTO;
 import com.example.taskmanager.entity.Meeting;
 import com.example.taskmanager.entity.Notification;
 import com.example.taskmanager.entity.Project;
@@ -79,6 +79,32 @@ public class MeetingServiceImpl implements MeetingService {
                 .stream()
                 .map(meetingMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public MeetingResponseDTO updateMeeting(Long id, UpdateMeetingDTO request, String username) {
+        Meeting meeting = meetingRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Meeting not found"));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        boolean isOrganizer = meeting.getOrganizer().getUsername().equals(username);
+        boolean isAdmin = user.getRoles().contains(Role.ADMIN);
+
+        if (!isOrganizer && !isAdmin) {
+            throw new RuntimeException("You don't have permission to update this meeting");
+        }
+
+        if (request.getTitle() != null) meeting.setTitle(request.getTitle());
+        if (request.getDescription() != null) meeting.setDescription(request.getDescription());
+        if (request.getStartTime() != null) meeting.setStartTime(request.getStartTime());
+        if (request.getEndTime() != null) meeting.setEndTime(request.getEndTime());
+        if (request.getParticipantIds() != null) {
+            List<User> participants = userRepository.findAllById(request.getParticipantIds());
+            meeting.setParticipants(participants);
+        }
+
+        Meeting updated = meetingRepository.save(meeting);
+        return meetingMapper.toDto(updated);
     }
 
     @Override
