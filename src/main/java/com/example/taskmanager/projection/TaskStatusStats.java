@@ -1,6 +1,7 @@
-package com.example.taskmanager.dto.projection;
+package com.example.taskmanager.projection;
 
-public interface TaskStatsProjection {
+public interface TaskStatusStats {
+    Long getTotal();
     Long getTodo();
     Long getInProgress();
     Long getDone();

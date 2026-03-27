@@ -1,4 +1,4 @@
-package com.example.taskmanager.dto.projection;
+package com.example.taskmanager.projection;
 
 public interface UserStatsProjection {
     Long getTotals();

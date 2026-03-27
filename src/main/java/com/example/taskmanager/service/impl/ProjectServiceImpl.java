@@ -1,13 +1,16 @@
 package com.example.taskmanager.service.impl;
 
 import com.example.taskmanager.config.exception.ResourceNotFoundException;
-import com.example.taskmanager.dto.projection.TaskStatusStats;
+import com.example.taskmanager.projection.ProjectListProjection;
+import com.example.taskmanager.projection.TaskStatusStats;
 import com.example.taskmanager.dto.request.CreateProjectDTO;
+import com.example.taskmanager.dto.response.MemberAvatarDTO;
 import com.example.taskmanager.dto.response.ProjectDTO;
 import com.example.taskmanager.dto.response.ProjectDashboardStatsDTO;
 import com.example.taskmanager.entity.Project;
 import com.example.taskmanager.entity.ProjectMember;
 import com.example.taskmanager.entity.User;
+import com.example.taskmanager.enums.Gender;
 import com.example.taskmanager.enums.ProjectRole;
 import com.example.taskmanager.mapper.ProjectMapper;
 import com.example.taskmanager.repository.ProjectMemberRepository;
@@ -51,14 +54,40 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public ProjectDTO getProjectById(Long id) {
-        Project project = projectRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        Project project = projectRepository.findWithDetailsById(id).orElseThrow(() -> new ResourceNotFoundException("Project not found"));
         return projectMapper.toDTO(project);
     }
 
+//    @Override
+//    public Page<ProjectDTO> getAllProjects(Pageable pageable) {
+//        Page<Project> projects = projectRepository.findAll(pageable);
+//        return projects.map(projectMapper::toDTO);
+//    }
+
     @Override
     public Page<ProjectDTO> getAllProjects(Pageable pageable) {
-        Page<Project> projects = projectRepository.findAll(pageable);
-        return projects.map(projectMapper::toDTO);
+        Page<ProjectListProjection> page = projectRepository.findProjectList(pageable);
+
+        return page.map(p -> {
+            ProjectDTO dto = new ProjectDTO();
+            dto.setId(p.getId());
+            dto.setName(p.getName());
+            dto.setDescription(p.getDescription());
+
+            var avatars = projectRepository.findTop3Avatars(p.getId());
+
+            dto.setMemberAvatars(
+                    avatars.stream()
+                            .map(a -> new MemberAvatarDTO(
+                                    (String) a[0],
+                                    (String) a[1],
+                                    (Gender) a[2]
+                            ))
+                            .toList()
+            );
+
+            return dto;
+        });
     }
 
     @Override
