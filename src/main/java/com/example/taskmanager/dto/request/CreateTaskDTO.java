@@ -36,4 +36,6 @@ public class CreateTaskDTO {
     private Long projectId;
 
     private Long assigneeId;
+    private Long version;
+
 }

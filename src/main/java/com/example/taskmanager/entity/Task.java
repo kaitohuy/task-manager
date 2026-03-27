@@ -51,4 +51,8 @@ public class Task {
     @JoinColumn(name = "assignee_id")
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private User assignee;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }

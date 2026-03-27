@@ -79,7 +79,8 @@ public class TaskController {
     @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMemberByTaskId(#id, authentication)")
     public ResponseEntity<TaskDTO> updateTaskStatus(
             @PathVariable Long id,
-            @RequestParam TaskStatus status) {
-        return ResponseEntity.ok(taskService.updateTaskStatus(id, status));
+            @RequestParam TaskStatus status,
+            @PathVariable Long version) {
+        return ResponseEntity.ok(taskService.updateTaskStatus(id, status, version));
     }
 }

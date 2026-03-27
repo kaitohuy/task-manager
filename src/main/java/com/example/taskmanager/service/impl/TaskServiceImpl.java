@@ -1,5 +1,6 @@
 package com.example.taskmanager.service.impl;
 
+import com.example.taskmanager.config.exception.ConflictException;
 import com.example.taskmanager.config.exception.ResourceNotFoundException;
 import com.example.taskmanager.dto.request.CreateTaskDTO;
 import com.example.taskmanager.dto.request.SearchTaskDTO;
@@ -16,6 +17,7 @@ import com.example.taskmanager.service.interfaces.DashboardService;
 import com.example.taskmanager.service.interfaces.NotificationService;
 import com.example.taskmanager.service.interfaces.TaskService;
 import com.example.taskmanager.spec.TaskSpecification;
+import jakarta.persistence.OptimisticLockException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -107,8 +109,15 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Transactional
     public TaskDTO updateTask(Long id, CreateTaskDTO request) {
-        Task task = taskRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+
+        if (request.getVersion() != null && !request.getVersion().equals(task.getVersion())) {
+            throw new ConflictException("Task đã bị thay đổi bởi người khác");
+        }
 
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
@@ -123,16 +132,26 @@ public class TaskServiceImpl implements TaskService {
             task.setAssignee(null);
         }
 
-        task = taskRepository.save(task);
-        TaskDTO responseDTO = taskMapper.toDTO(task);
-        messagingTemplate.convertAndSend("/topic/projects/" + task.getProject().getId() + "/tasks", responseDTO);
+        try {
+            Task saved = taskRepository.save(task);
 
-        dashboardService.broadcastAdminStats();
-        task.getProject().getMembers().stream()
-                .filter(pm -> pm.getRole() == ProjectRole.LEADER)
-                .forEach(leader -> dashboardService.broadcastManagerStats(leader.getUser().getUsername()));
+            TaskDTO responseDTO = taskMapper.toDTO(saved);
 
-        return responseDTO;
+            messagingTemplate.convertAndSend(
+                    "/topic/projects/" + saved.getProject().getId() + "/tasks",
+                    responseDTO
+            );
+
+            dashboardService.broadcastAdminStats();
+            saved.getProject().getMembers().stream()
+                    .filter(pm -> pm.getRole() == ProjectRole.LEADER)
+                    .forEach(leader -> dashboardService.broadcastManagerStats(leader.getUser().getUsername()));
+
+            return responseDTO;
+
+        } catch (OptimisticLockException e) {
+            throw new ConflictException("Task đã bị thay đổi bởi người khác, vui lòng reload");
+        }
     }
 
     @Override
@@ -156,13 +175,31 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public TaskDTO updateTaskStatus(Long id, TaskStatus status) {
-        Task task = taskRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+    public TaskDTO updateTaskStatus(Long id, TaskStatus status, Long version) {
+
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+
+        // 🔥 CHECK VERSION từ FE
+        if (version != null && !version.equals(task.getVersion())) {
+            throw new ConflictException("Task đã bị thay đổi bởi người khác");
+        }
+
         task.setStatus(status);
-        Task savedTask = taskRepository.save(task);
+
+        Task savedTask;
+        try {
+            savedTask = taskRepository.save(task); // ✅ dùng biến ngoài
+        } catch (OptimisticLockException e) {
+            throw new ConflictException("Task đã bị thay đổi, vui lòng reload");
+        }
+
         TaskDTO responseDTO = taskMapper.toDTO(savedTask);
 
-        messagingTemplate.convertAndSend("/topic/projects/" + savedTask.getProject().getId() + "/tasks", responseDTO);
+        messagingTemplate.convertAndSend(
+                "/topic/projects/" + savedTask.getProject().getId() + "/tasks",
+                responseDTO
+        );
 
         dashboardService.broadcastAdminStats();
         savedTask.getProject().getMembers().stream()
@@ -177,7 +214,6 @@ public class TaskServiceImpl implements TaskService {
             boolean isAssigneeActing = assignee != null && assignee.getUsername().equals(currentUsername);
 
             if (isAssigneeActing) {
-                // assignee update -> notify leader
                 savedTask.getProject().getMembers().stream()
                         .filter(pm -> pm.getRole() == ProjectRole.LEADER)
                         .map(ProjectMember::getUser)
@@ -187,13 +223,12 @@ public class TaskServiceImpl implements TaskService {
                                     .recipient(leaderUser)
                                     .sender(currentUser)
                                     .type(NotificationType.TASK_STATUS_CHANGED)
-                                    .message(currentUser.getUsername() + " as just changed task '" + savedTask.getTitle() + "' to: " + status)
+                                    .message(currentUser.getUsername() + " just changed task '" + savedTask.getTitle() + "' to: " + status)
                                     .targetId(savedTask.getId())
                                     .build();
                             notificationService.sendNotification(notif);
                         });
             } else {
-                // Leader update -> notify Assignee
                 if (assignee != null) {
                     Notification notif = Notification.builder()
                             .recipient(assignee)
