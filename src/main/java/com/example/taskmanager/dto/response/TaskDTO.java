@@ -22,4 +22,5 @@ public class TaskDTO {
     private Long projectId;
     private String projectName;
     private AssigneeInfoDTO assignee;
+    private Long version;
 }
