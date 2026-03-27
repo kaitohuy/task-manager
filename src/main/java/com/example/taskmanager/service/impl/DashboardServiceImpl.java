@@ -1,11 +1,10 @@
 package com.example.taskmanager.service.impl;
 
-import com.example.taskmanager.dto.projection.TaskStatusStats;
-import com.example.taskmanager.dto.projection.UserStatsProjection;
+import com.example.taskmanager.projection.TaskStatusStats;
+import com.example.taskmanager.projection.UserStatsProjection;
 import com.example.taskmanager.dto.response.AdminDashboardStatsDTO;
-import com.example.taskmanager.dto.projection.TaskStatsProjection;
+import com.example.taskmanager.projection.TaskStatsProjection;
 import com.example.taskmanager.dto.response.ManagerDashboardStatsDTO;
-import com.example.taskmanager.enums.Role;
 import com.example.taskmanager.repository.ProjectRepository;
 import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.repository.UserRepository;

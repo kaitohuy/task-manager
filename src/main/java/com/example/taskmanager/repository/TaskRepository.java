@@ -1,7 +1,7 @@
 package com.example.taskmanager.repository;
 
-import com.example.taskmanager.dto.projection.TaskStatsProjection;
-import com.example.taskmanager.dto.projection.TaskStatusStats;
+import com.example.taskmanager.projection.TaskStatsProjection;
+import com.example.taskmanager.projection.TaskStatusStats;
 import com.example.taskmanager.entity.Task;
 import com.example.taskmanager.enums.ProjectRole;
 import com.example.taskmanager.enums.TaskStatus;
@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 
 public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificationExecutor<Task> {
@@ -55,7 +56,7 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
         WHERE pm.user.username = :username 
         AND pm.role = 'LEADER'
     """)
-    TaskStatusStats getTeamTaskStatsByManager(@org.springframework.data.repository.query.Param("username") String username);
+    TaskStatusStats getTeamTaskStatsByManager(@Param("username") String username);
 
     @Query("""
         SELECT 
@@ -68,7 +69,7 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
         FROM Task t
         WHERE t.assignee.username = :username
     """)
-    TaskStatusStats getMyTaskStats(@org.springframework.data.repository.query.Param("username") String username);
+    TaskStatusStats getMyTaskStats(@Param("username") String username);
 
     @Query("""
         SELECT 
@@ -81,5 +82,5 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
         FROM Task t
         WHERE t.project.id = :projectId
     """)
-    TaskStatusStats getProjectTaskStats(@org.springframework.data.repository.query.Param("projectId") Long projectId);
+    TaskStatusStats getProjectTaskStats(@Param("projectId") Long projectId);
 }
