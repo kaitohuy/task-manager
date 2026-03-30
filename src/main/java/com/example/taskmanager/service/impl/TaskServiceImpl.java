@@ -17,17 +17,21 @@ import com.example.taskmanager.service.interfaces.DashboardService;
 import com.example.taskmanager.service.interfaces.NotificationService;
 import com.example.taskmanager.service.interfaces.TaskService;
 import com.example.taskmanager.spec.TaskSpecification;
+import com.example.taskmanager.utils.PageableUtils;
+import com.example.taskmanager.utils.SortUtils;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +43,15 @@ public class TaskServiceImpl implements TaskService {
     private final SimpMessagingTemplate messagingTemplate;
     private final DashboardService dashboardService;
     private final NotificationService notificationService;
+
+    private static final Map<String, String> TASK_SORT_MAPPING = Map.of(
+            "id", "id",
+            "title", "title",
+            "status", "status",
+            "deadline", "deadline",
+            "createdAt", "createdAt",
+            "assigneeUsername", "assignee.username"
+    );
 
     @Override
     public TaskDTO createTask(CreateTaskDTO request) {
@@ -81,12 +94,22 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public Page<TaskDTO> getTasksByProject(Long projectId, Pageable pageable) {
+        pageable = PageableUtils.applyDefaultSort(
+                pageable,
+                Sort.by("id").descending()
+        );
+        pageable = SortUtils.mapSort(pageable, TASK_SORT_MAPPING);
         Page<Task> tasks = taskRepository.findByProjectId(projectId, pageable);
         return tasks.map(taskMapper::toDTO);
     }
 
     @Override
     public Page<TaskDTO> getTasksByProjectAndStatus(Long projectId, TaskStatus status, Pageable pageable) {
+        pageable = PageableUtils.applyDefaultSort(
+                pageable,
+                Sort.by("id").descending()
+        );
+        pageable = SortUtils.mapSort(pageable, TASK_SORT_MAPPING);
         Page<Task> tasks = taskRepository.findByProjectIdAndStatus(projectId, status, pageable);
         return tasks.map(taskMapper::toDTO);
     }
@@ -99,6 +122,12 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public Page<TaskDTO> searchTasks(SearchTaskDTO request, Pageable pageable) {
+        pageable = PageableUtils.applyDefaultSort(
+                pageable,
+                Sort.by("id").descending()
+        );
+        pageable = SortUtils.mapSort(pageable, TASK_SORT_MAPPING);
+
         Specification<Task> spec = Specification.where(TaskSpecification.hasProjectId(request.getProjectId()))
                 .and(TaskSpecification.hasStatus(request.getStatus()))
                 .and(TaskSpecification.titleContains(request.getKeyword()))
@@ -170,6 +199,11 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public Page<TaskDTO> getAllTasks(Pageable pageable) {
+        pageable = PageableUtils.applyDefaultSort(
+                pageable,
+                Sort.by("id").descending()
+        );
+        pageable = SortUtils.mapSort(pageable, TASK_SORT_MAPPING);
         return taskRepository.findAll(pageable).map(taskMapper::toDTO);
     }
 

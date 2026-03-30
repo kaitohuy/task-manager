@@ -32,13 +32,16 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
         WHERE pm.user.username = :username 
         AND pm.role = 'LEADER'
     """)
-    long countProjectsManagedByUser(@org.springframework.data.repository.query.Param("username") String username);
+    long countProjectsManagedByUser(@Param("username") String username);
 
     @Query("""
         SELECT p.id as id,
                p.name as name,
                p.description as description,
-               u.username as createdByUsername
+               p.createdAt as createdAt,
+               u.id as createdById,
+               u.username as createdByUsername,
+               u.imageUrl as createdByAvatar
         FROM Project p
         JOIN p.createdBy u
     """)

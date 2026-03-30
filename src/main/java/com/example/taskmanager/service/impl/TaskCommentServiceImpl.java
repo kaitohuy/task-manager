@@ -34,7 +34,6 @@ public class TaskCommentServiceImpl implements TaskCommentService {
     @Override
     @Transactional(readOnly = true)
     public Page<CommentResponseDTO> getTopLevelComments(Long taskId, Pageable pageable) {
-        // Ánh xạ thẳng từ Page<Entity> sang Page<DTO>
         return commentRepository.findTopLevelCommentsByTaskId(taskId, pageable)
                 .map(commentMapper::toDto);
     }
