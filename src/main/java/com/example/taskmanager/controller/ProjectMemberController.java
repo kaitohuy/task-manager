@@ -1,6 +1,8 @@
 package com.example.taskmanager.controller;
 
 import com.example.taskmanager.dto.request.AddMemberDTO;
+import com.example.taskmanager.dto.request.AddMembers;
+import com.example.taskmanager.dto.response.ApiResponse;
 import com.example.taskmanager.dto.response.ProjectMemberDTO;
 import com.example.taskmanager.dto.response.UserDTO;
 import com.example.taskmanager.enums.ProjectRole;
@@ -55,5 +57,11 @@ public class ProjectMemberController {
     @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isLeader(#id, authentication)")
     public ResponseEntity<Page<UserDTO>> getAvailableUsers(@PathVariable Long id, Pageable pageable) {
         return ResponseEntity.ok(projectMemberService.getAvailableUsersToAdd(id, pageable));
+    }
+
+    @PostMapping("/{projectId}/members/bulk")
+    public ResponseEntity<ApiResponse> addMembersBulk(@PathVariable Long projectId, @RequestBody AddMembers request) {
+        projectMemberService.addMembersBatch(projectId, request.getUserIds());
+        return ResponseEntity.ok(new ApiResponse("Add members successfully!"));
     }
 }

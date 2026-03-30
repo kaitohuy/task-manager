@@ -16,4 +16,5 @@ public interface ProjectMemberService {
     Page<ProjectMemberDTO> getMembers(Long projectId, Pageable pageable);
     ProjectMemberDTO updateMemberRole(Long projectId, Long userId, ProjectRole newRole);
     Page<UserDTO> getAvailableUsersToAdd(Long projectId, Pageable pageable);
+    void addMembersBatch(Long projectId, List<Long> userIds);
 }

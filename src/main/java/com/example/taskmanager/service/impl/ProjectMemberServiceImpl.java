@@ -20,6 +20,7 @@ import com.example.taskmanager.service.interfaces.NotificationService;
 import com.example.taskmanager.service.interfaces.ProjectMemberService;
 import com.example.taskmanager.utils.PageableUtils;
 import com.example.taskmanager.utils.SortUtils;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +41,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     private final ProjectMemberMapper projectMemberMapper;
     private final UserMapper userMapper;
     private final NotificationService notificationService;
+    private final EntityManager entityManager;
 
     private static final Map<String, String> MEMBER_SORT_MAPPING = Map.of(
             "id", "id",
@@ -134,5 +136,34 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
         return userRepository.findUsersNotInProject(projectId, pageable)
                 .map(userMapper::toDTO);
+    }
+
+    @Override
+    @Transactional
+    public void addMembersBatch(Long projectId, List<Long> userIds) {
+
+        int batchSize = 50;
+
+        Project project = entityManager.getReference(Project.class, projectId);
+
+        for (int i = 0; i < userIds.size(); i++) {
+
+            User user = entityManager.getReference(User.class, userIds.get(i));
+
+            ProjectMember pm = new ProjectMember();
+            pm.setProject(project);
+            pm.setUser(user);
+            pm.setRole(ProjectRole.MEMBER);
+
+            entityManager.persist(pm);
+
+            if (i > 0 && i % batchSize == 0) {
+                entityManager.flush();
+                entityManager.clear();
+            }
+        }
+
+        entityManager.flush();
+        entityManager.clear();
     }
 }
