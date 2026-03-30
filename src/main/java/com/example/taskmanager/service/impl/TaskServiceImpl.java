@@ -116,7 +116,7 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
         if (request.getVersion() != null && !request.getVersion().equals(task.getVersion())) {
-            throw new ConflictException("Task đã bị thay đổi bởi người khác");
+            throw new ConflictException("Task has been changed by other person, please reload!");
         }
 
         task.setTitle(request.getTitle());
@@ -150,7 +150,7 @@ public class TaskServiceImpl implements TaskService {
             return responseDTO;
 
         } catch (OptimisticLockException e) {
-            throw new ConflictException("Task đã bị thay đổi bởi người khác, vui lòng reload");
+            throw new ConflictException("Task has been changed by other person, please reload!");
         }
     }
 
@@ -180,18 +180,17 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
-        // 🔥 CHECK VERSION từ FE
         if (version != null && !version.equals(task.getVersion())) {
-            throw new ConflictException("Task đã bị thay đổi bởi người khác");
+            throw new ConflictException("Task has been changed by other person, please reload!");
         }
 
         task.setStatus(status);
 
         Task savedTask;
         try {
-            savedTask = taskRepository.save(task); // ✅ dùng biến ngoài
+            savedTask = taskRepository.save(task);
         } catch (OptimisticLockException e) {
-            throw new ConflictException("Task đã bị thay đổi, vui lòng reload");
+            throw new ConflictException("Task has been changed by other person, please reload!");
         }
 
         TaskDTO responseDTO = taskMapper.toDTO(savedTask);
