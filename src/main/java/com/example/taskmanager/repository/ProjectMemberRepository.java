@@ -4,6 +4,7 @@ package com.example.taskmanager.repository;
 import com.example.taskmanager.entity.ProjectMember;
 import com.example.taskmanager.enums.ProjectRole;
 import com.example.taskmanager.projection.MemberAvatarProjection;
+import com.example.taskmanager.projection.ProjectMemberCountProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,4 +33,12 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
         WHERE pm.project.id IN :projectIds
     """)
     List<MemberAvatarProjection> findAvatarsByProjectIds(List<Long> projectIds);
+
+    @Query("""
+        SELECT pm.project.id as projectId, COUNT(pm) as memberCount
+        FROM ProjectMember pm
+        WHERE pm.project.id IN :projectIds
+        GROUP BY pm.project.id
+    """)
+    List<ProjectMemberCountProjection> countMembersByProjectIds(List<Long> projectIds);
 }

@@ -1,8 +1,10 @@
 package com.example.taskmanager.service.impl;
 
 import com.example.taskmanager.config.exception.ResourceNotFoundException;
+import com.example.taskmanager.dto.response.UserDTO;
 import com.example.taskmanager.projection.MemberAvatarProjection;
 import com.example.taskmanager.projection.ProjectListProjection;
+import com.example.taskmanager.projection.ProjectMemberCountProjection;
 import com.example.taskmanager.projection.TaskStatusStats;
 import com.example.taskmanager.dto.request.CreateProjectDTO;
 import com.example.taskmanager.dto.response.MemberAvatarDTO;
@@ -47,6 +49,7 @@ public class ProjectServiceImpl implements ProjectService {
             "id", "id",
             "name", "name",
             "description", "description",
+            "createdAt", "createdAt",
             "createdBy", "createdByUsername"
     );
 
@@ -101,9 +104,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(ProjectListProjection::getId)
                 .toList();
 
-        List<MemberAvatarProjection> avatarList =
-                projectMemberRepository.findAvatarsByProjectIds(projectIds);
-
+        List<MemberAvatarProjection> avatarList = projectMemberRepository.findAvatarsByProjectIds(projectIds);
         Map<Long, List<MemberAvatarDTO>> avatarMap = avatarList.stream()
                 .collect(Collectors.groupingBy(
                         MemberAvatarProjection::getProjectId,
@@ -114,11 +115,34 @@ public class ProjectServiceImpl implements ProjectService {
                         ), Collectors.toList())
                 ));
 
+        List<ProjectMemberCountProjection> countList = projectMemberRepository.countMembersByProjectIds(projectIds);
+        Map<Long, Long> memberCountMap = countList.stream()
+                .collect(Collectors.toMap(
+                        ProjectMemberCountProjection::getProjectId,
+                        ProjectMemberCountProjection::getMemberCount
+                ));
+
         return page.map(p -> {
             ProjectDTO dto = new ProjectDTO();
             dto.setId(p.getId());
             dto.setName(p.getName());
             dto.setDescription(p.getDescription());
+            dto.setCreatedAt(p.getCreatedAt());
+
+            dto.setCreatedBy(new UserDTO(
+                    p.getCreatedById(),
+                    null,
+                    p.getCreatedByUsername(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    p.getCreatedByAvatar()
+            ));
+
+            dto.setMemberCount(memberCountMap.getOrDefault(p.getId(), 0L).intValue());
 
             List<MemberAvatarDTO> avatars =
                     avatarMap.getOrDefault(p.getId(), List.of())
