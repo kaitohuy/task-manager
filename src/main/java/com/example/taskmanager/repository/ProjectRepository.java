@@ -1,5 +1,6 @@
 package com.example.taskmanager.repository;
 
+import com.example.taskmanager.projection.MemberAvatarProjection;
 import com.example.taskmanager.projection.ProjectListProjection;
 import com.example.taskmanager.entity.Project;
 import org.springframework.data.domain.Page;
@@ -34,20 +35,13 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     long countProjectsManagedByUser(@org.springframework.data.repository.query.Param("username") String username);
 
     @Query("""
-    SELECT p.id as id,
-           p.name as name,
-           p.description as description,
-           p.createdBy.username as createdByUsername
-    FROM Project p
+        SELECT p.id as id,
+               p.name as name,
+               p.description as description,
+               u.username as createdByUsername
+        FROM Project p
+        JOIN p.createdBy u
     """)
     Page<ProjectListProjection> findProjectList(Pageable pageable);
 
-    @Query(value = """
-    SELECT u.username, u.image_url, u.gender
-    FROM project_member pm
-    JOIN users u ON pm.user_id = u.id
-    WHERE pm.project_id = :projectId
-    LIMIT 3
-    """, nativeQuery = true)
-    List<Object[]> findTop3Avatars(Long projectId);
 }
