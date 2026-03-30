@@ -53,7 +53,7 @@ public class ProjectMemberController {
 
     @GetMapping("/{id}/available-users")
     @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isLeader(#id, authentication)")
-    public ResponseEntity<List<UserDTO>> getAvailableUsers(@PathVariable Long id) {
-        return ResponseEntity.ok(projectMemberService.getAvailableUsersToAdd(id));
+    public ResponseEntity<Page<UserDTO>> getAvailableUsers(@PathVariable Long id, Pageable pageable) {
+        return ResponseEntity.ok(projectMemberService.getAvailableUsersToAdd(id, pageable));
     }
 }
