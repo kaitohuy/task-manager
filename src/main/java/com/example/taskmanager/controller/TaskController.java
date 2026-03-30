@@ -80,7 +80,7 @@ public class TaskController {
     public ResponseEntity<TaskDTO> updateTaskStatus(
             @PathVariable Long id,
             @RequestParam TaskStatus status,
-            @PathVariable Long version) {
+            @RequestParam Long version) {
         return ResponseEntity.ok(taskService.updateTaskStatus(id, status, version));
     }
 }
