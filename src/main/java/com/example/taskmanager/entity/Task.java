@@ -1,58 +1,63 @@
 package com.example.taskmanager.entity;
 
 import com.example.taskmanager.enums.TaskStatus;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
+import org.hibernate.envers.RelationTargetAuditMode;
 
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
 
 @Entity
+@Audited
 @Table(name = "task")
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class Task {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Audited
     private Long id;
 
     @Column(name = "title")
+    @Audited
     private String title;
 
     @Column(name = "description")
+    @Audited
     private String description;
 
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
+    @Audited
     private TaskStatus status;
 
     @Column(name = "deadline")
+    @Audited
     private LocalDateTime deadline;
 
-    @Column(name = "created_at")
     @CreationTimestamp
+    @Column(name = "created_at")
+    @NotAudited
     private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")
-    @OnDelete(action = OnDeleteAction.SET_NULL)
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private User assignee;
 
     @Version
-    @Column(nullable = false)
+    @NotAudited
     private Long version;
 }
+
