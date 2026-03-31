@@ -183,8 +183,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         pageable = SortUtils.mapSort(pageable, PROJECT_ENTITY_SORT_MAPPING);
 
-        Page<Project> projects =
-                projectRepository.findProjectsByMemberUsername(username, pageable);
+        Page<Project> projects = projectRepository.findProjectsByMemberUsername(username, pageable);
 
         return projects.map(projectMapper::toDTO);
     }
