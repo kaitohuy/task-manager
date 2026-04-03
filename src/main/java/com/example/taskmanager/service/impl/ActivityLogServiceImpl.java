@@ -1,5 +1,6 @@
 package com.example.taskmanager.service.impl;
 
+import com.example.taskmanager.config.security.SecurityService;
 import com.example.taskmanager.dto.response.ActivityLogDTO;
 import com.example.taskmanager.entity.ActivityLog;
 import com.example.taskmanager.enums.ActivityAction;
@@ -7,7 +8,6 @@ import com.example.taskmanager.enums.ActivityType;
 import com.example.taskmanager.mapper.ActivityLogMapper;
 import com.example.taskmanager.repository.ActivityLogRepository;
 import com.example.taskmanager.service.interfaces.ActivityLogService;
-import com.example.taskmanager.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +22,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     private final ActivityLogRepository logRepository;
     private final ActivityLogMapper logMapper;
+    private final SecurityService securityService;
 
     @Override
     public Page<ActivityLogDTO> getMyLogs(Pageable pageable) {
@@ -99,6 +100,6 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     }
 
     private Long getCurrentUserId() {
-        return SecurityUtils.getCurrentUser().getId();
+        return securityService.getCurrentUser().getId();
     }
 }
