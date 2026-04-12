@@ -84,4 +84,12 @@ public class User {
     @NotAudited
     @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
     private List<Task> myTasks;
+
+    @Audited
+    @Column(name = "enabled")
+    private boolean enabled = true; // Defaulting to true for existing users, will set to false for new ones
+
+    @Audited
+    @Column(name = "verified")
+    private boolean verified = false;
 }
