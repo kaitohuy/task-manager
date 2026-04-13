@@ -36,11 +36,11 @@ public class JwtUtil {
             claims.put("userId", customUserDetails.getId());
         }
 
-        List<String> roles = userDetails.getAuthorities()
+        List<String> authorities = userDetails.getAuthorities()
                 .stream()
                 .map(grantedAuthority -> grantedAuthority.getAuthority())
                 .collect(Collectors.toList());
-        claims.put("roles", roles);
+        claims.put("authorities", authorities);
 
         return Jwts.builder()
                 .setClaims(claims)
@@ -64,8 +64,8 @@ public class JwtUtil {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public List<String> extractRoles(String token) {
-        return extractClaim(token, claims -> claims.get("roles", List.class));
+    public List<String> extractAuthorities(String token) {
+        return extractClaim(token, claims -> claims.get("authorities", List.class));
     }
 
     public Long extractUserId(String token) {

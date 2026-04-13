@@ -47,6 +47,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MfaService mfaService;
 
     @Override
     @Transactional
@@ -63,6 +64,19 @@ public class AuthServiceImpl implements AuthService {
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getIdentifier());
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.isMfaEnabled()) {
+            // Return intermediate response for MFA
+            String mfaToken = jwtUtil.generateToken(userDetails); // Use normal token for now but identify it's for MFA
+            return AuthResponse.builder()
+                    .username(user.getUsername())
+                    .mfaRequired(true)
+                    .mfaToken(mfaToken)
+                    .build();
+        }
+
         String token = jwtUtil.generateToken(userDetails);
         
         // Generate and save Refresh Token
@@ -71,10 +85,11 @@ public class AuthServiceImpl implements AuthService {
         // Add Refresh Token to Cookie
         tokenService.addRefreshTokenCookie(response, refreshTokenString);
 
-        return new AuthResponse(
-                userDetails.getUsername(),
-                token
-        );
+        return AuthResponse.builder()
+                .username(userDetails.getUsername())
+                .token(token)
+                .mfaRequired(false)
+                .build();
     }
 
     @Override
@@ -116,7 +131,10 @@ public class AuthServiceImpl implements AuthService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(refreshToken.getUser().getUsername());
         String newAccessToken = jwtUtil.generateToken(userDetails);
 
-        return new AuthResponse(userDetails.getUsername(), newAccessToken);
+        return AuthResponse.builder()
+                .username(userDetails.getUsername())
+                .token(newAccessToken)
+                .build();
     }
 
     @Override
@@ -200,5 +218,71 @@ public class AuthServiceImpl implements AuthService {
             refreshTokenRepository.deleteByToken(token);
             tokenService.clearRefreshTokenCookie(response);
         });
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse verifyOtp(String mfaToken, String code, HttpServletResponse response) {
+        // Extract username from temporary token
+        String username = jwtUtil.extractUsername(mfaToken);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!mfaService.verifyCode(code, user.getMfaSecret())) {
+            throw new BadRequestException("Mã OTP không hợp lệ");
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        String token = jwtUtil.generateToken(userDetails);
+        String refreshTokenString = tokenService.createRefreshToken(username);
+        tokenService.addRefreshTokenCookie(response, refreshTokenString);
+
+        return AuthResponse.builder()
+                .username(username)
+                .token(token)
+                .mfaRequired(false)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public String setupMfa(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getMfaSecret() == null) {
+            user.setMfaSecret(mfaService.generateSecretKey());
+            userRepository.save(user);
+        }
+
+        try {
+            return mfaService.generateQrCodeUri(user.getMfaSecret(), user.getEmail());
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi sinh mã QR: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void enableMfa(String username, String code) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (mfaService.verifyCode(code, user.getMfaSecret())) {
+            user.setMfaEnabled(true);
+            userRepository.save(user);
+        } else {
+            throw new BadRequestException("Mã xác thực không chính xác");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void disableMfa(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        user.setMfaEnabled(false);
+        user.setMfaSecret(null);
+        userRepository.save(user);
     }
 }

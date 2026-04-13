@@ -16,4 +16,8 @@ public interface AuthService {
     void forgotPassword(String email);
     void resetPassword(String token, String newPassword);
     void resendVerificationEmail(String email);
+    AuthResponse verifyOtp(String mfaToken, String code, HttpServletResponse response);
+    String setupMfa(String username);
+    void enableMfa(String username, String code);
+    void disableMfa(String username);
 }

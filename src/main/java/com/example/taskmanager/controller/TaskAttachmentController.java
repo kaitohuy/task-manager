@@ -24,13 +24,13 @@ public class TaskAttachmentController {
     private final UserRepository userRepository;
 
     @GetMapping("/tasks/{taskId}/attachments")
-    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMemberByTaskId(#taskId, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or hasPermission(#taskId, 'TASK', 'MEMBER')")
     public ResponseEntity<List<AttachmentResponseDTO>> getAttachments(@PathVariable Long taskId) {
         return ResponseEntity.ok(attachmentService.getAttachments(taskId));
     }
 
     @PostMapping("/tasks/{taskId}/attachments")
-    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMemberByTaskId(#taskId, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or hasPermission(#taskId, 'TASK', 'MEMBER')")
     public ResponseEntity<AttachmentResponseDTO> addAttachment(
             @PathVariable Long taskId,
             @Valid @RequestBody CreateAttachmentDTO request,
@@ -49,7 +49,7 @@ public class TaskAttachmentController {
     }
 
     @PostMapping("/tasks/{taskId}/attachments/upload")
-    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMemberByTaskId(#taskId, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or hasPermission(#taskId, 'TASK', 'MEMBER')")
     public ResponseEntity<AttachmentResponseDTO> uploadFile(
             @PathVariable Long taskId,
             @RequestParam("file") MultipartFile file,
