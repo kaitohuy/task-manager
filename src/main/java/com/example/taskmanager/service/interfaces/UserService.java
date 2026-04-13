@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 
 import java.util.List;
+import java.util.Set;
 
 public interface UserService {
     UserDTO createUser(CreateUserDTO request);
@@ -21,4 +22,7 @@ public interface UserService {
     UserDTO getByUsername(String username);
     Page<UserDTO> getAllUser(Pageable pageable);
     Page<UserDTO> searchAdvanceUsers(String keyword, Gender gender, Role role, Pageable pageable);
+    Set<String> getUserPermissions(Long id);
+    List<com.example.taskmanager.dto.request.UserPermissionDTO> getIndividualPermissionOverrides(Long id);
+    void updateUserPermissions(Long userId, List<com.example.taskmanager.dto.request.UserPermissionDTO> overrides);
 }

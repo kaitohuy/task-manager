@@ -1,10 +1,13 @@
 package com.example.taskmanager.repository;
 
-import com.example.taskmanager.dto.projection.UserStatsProjection;
+import com.example.taskmanager.projection.UserStatsProjection;
 import com.example.taskmanager.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,6 +15,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
 
     Optional<User> findByUsername(String username);
+    Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
     boolean existsByUsername(String username);
     boolean existsByPhone(String phone);
@@ -34,5 +38,5 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     UserStatsProjection getUserStatisticsJPQL();
 
     @Query("SELECT u FROM User u WHERE u.id NOT IN (SELECT pm.user.id FROM ProjectMember pm WHERE pm.project.id = :projectId)")
-    List<User> findUsersNotInProject(@org.springframework.data.repository.query.Param("projectId") Long projectId);
+    Page<User> findUsersNotInProject(Long projectId, Pageable pageable);
 }

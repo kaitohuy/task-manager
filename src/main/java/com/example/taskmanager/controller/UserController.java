@@ -21,6 +21,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/users")
@@ -72,5 +73,24 @@ public class UserController {
     @GetMapping("/search-advanced")
     public ResponseEntity<Page<UserDTO>> searchUser(String keyword, Gender gender, Role role, Pageable pageable) {
         return ResponseEntity.ok(userService.searchAdvanceUsers(keyword, gender, role, pageable));
+    }
+
+    @GetMapping("/{id}/permissions/effective")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Set<String>> getEffectivePermissions(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getUserPermissions(id));
+    }
+
+    @GetMapping("/{id}/permissions/overrides")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<com.example.taskmanager.dto.request.UserPermissionDTO>> getPermissionOverrides(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getIndividualPermissionOverrides(id));
+    }
+
+    @PutMapping("/{id}/permissions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> updateUserPermissions(@PathVariable Long id, @RequestBody List<com.example.taskmanager.dto.request.UserPermissionDTO> overrides) {
+        userService.updateUserPermissions(id, overrides);
+        return ResponseEntity.noContent().build();
     }
 }

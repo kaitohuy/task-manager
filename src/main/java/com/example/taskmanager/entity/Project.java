@@ -1,47 +1,52 @@
 package com.example.taskmanager.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.Formula;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
+import org.hibernate.envers.RelationTargetAuditMode;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
+@Audited
 @Table(name = "project")
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class Project {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Audited
     private Long id;
 
     @Column(name = "name")
+    @Audited
     private String name;
 
     @Column(name = "description")
+    @Audited
     private String description;
 
-    @Column(name = "created_at")
     @CreationTimestamp
+    @Column(name = "created_at")
+    @NotAudited
     private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private User createdBy;
 
-    @OneToMany(mappedBy = "project",fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @NotAudited
     private List<Task> tasks;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @NotAudited
     private List<ProjectMember> members;
-
-    @Formula("(SELECT COUNT(*) FROM project_member pm WHERE pm.project_id = id)")
-    private int memberCount;
 }

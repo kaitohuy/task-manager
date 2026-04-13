@@ -1,13 +1,19 @@
 package com.example.taskmanager.service.impl;
 
 import com.example.taskmanager.config.exception.ResourceNotFoundException;
-import com.example.taskmanager.dto.projection.TaskStatusStats;
+import com.example.taskmanager.dto.response.UserDTO;
+import com.example.taskmanager.projection.MemberAvatarProjection;
+import com.example.taskmanager.projection.ProjectListProjection;
+import com.example.taskmanager.projection.ProjectMemberCountProjection;
+import com.example.taskmanager.projection.TaskStatusStats;
 import com.example.taskmanager.dto.request.CreateProjectDTO;
+import com.example.taskmanager.dto.response.MemberAvatarDTO;
 import com.example.taskmanager.dto.response.ProjectDTO;
 import com.example.taskmanager.dto.response.ProjectDashboardStatsDTO;
 import com.example.taskmanager.entity.Project;
 import com.example.taskmanager.entity.ProjectMember;
 import com.example.taskmanager.entity.User;
+import com.example.taskmanager.enums.Gender;
 import com.example.taskmanager.enums.ProjectRole;
 import com.example.taskmanager.mapper.ProjectMapper;
 import com.example.taskmanager.repository.ProjectMemberRepository;
@@ -15,13 +21,19 @@ import com.example.taskmanager.repository.ProjectRepository;
 import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.repository.UserRepository;
 import com.example.taskmanager.service.interfaces.ProjectService;
+import com.example.taskmanager.utils.PageableUtils;
+import com.example.taskmanager.utils.SortUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +44,20 @@ public class ProjectServiceImpl implements ProjectService {
     private final TaskRepository taskRepository;
     private final ProjectMapper projectMapper;
     private final ProjectMemberRepository projectMemberRepository;
+
+    private static final Map<String, String> PROJECT_SORT_MAPPING = Map.of(
+            "id", "id",
+            "name", "name",
+            "description", "description",
+            "createdAt", "createdAt",
+            "createdBy", "createdByUsername"
+    );
+
+    private static final Map<String, String> PROJECT_ENTITY_SORT_MAPPING = Map.of(
+            "id", "id",
+            "name", "name",
+            "createdAt", "createdAt"
+    );
 
     @Override
     public ProjectDTO createProject(CreateProjectDTO request, Authentication authentication) {
@@ -51,14 +77,83 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public ProjectDTO getProjectById(Long id) {
-        Project project = projectRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        Project project = projectRepository.findWithDetailsById(id).orElseThrow(() -> new ResourceNotFoundException("Project not found"));
         return projectMapper.toDTO(project);
     }
 
+//    @Override
+//    public Page<ProjectDTO> getAllProjects(Pageable pageable) {
+//        Page<Project> projects = projectRepository.findAll(pageable);
+//        return projects.map(projectMapper::toDTO);
+//    }
+
     @Override
     public Page<ProjectDTO> getAllProjects(Pageable pageable) {
-        Page<Project> projects = projectRepository.findAll(pageable);
-        return projects.map(projectMapper::toDTO);
+
+        pageable = PageableUtils.applyDefaultSort(
+                pageable,
+                Sort.by("id").descending()
+        );
+
+        pageable = SortUtils.mapSort(pageable, PROJECT_SORT_MAPPING);
+
+        Page<ProjectListProjection> page = projectRepository.findProjectList(pageable);
+
+        List<Long> projectIds = page.getContent()
+                .stream()
+                .map(ProjectListProjection::getId)
+                .toList();
+
+        List<MemberAvatarProjection> avatarList = projectMemberRepository.findAvatarsByProjectIds(projectIds);
+        Map<Long, List<MemberAvatarDTO>> avatarMap = avatarList.stream()
+                .collect(Collectors.groupingBy(
+                        MemberAvatarProjection::getProjectId,
+                        Collectors.mapping(a -> new MemberAvatarDTO(
+                                a.getUsername(),
+                                a.getImageUrl(),
+                                a.getGender()
+                        ), Collectors.toList())
+                ));
+
+        List<ProjectMemberCountProjection> countList = projectMemberRepository.countMembersByProjectIds(projectIds);
+        Map<Long, Long> memberCountMap = countList.stream()
+                .collect(Collectors.toMap(
+                        ProjectMemberCountProjection::getProjectId,
+                        ProjectMemberCountProjection::getMemberCount
+                ));
+
+        return page.map(p -> {
+            ProjectDTO dto = new ProjectDTO();
+            dto.setId(p.getId());
+            dto.setName(p.getName());
+            dto.setDescription(p.getDescription());
+            dto.setCreatedAt(p.getCreatedAt());
+
+            dto.setCreatedBy(new UserDTO(
+                    p.getCreatedById(),
+                    null,
+                    p.getCreatedByUsername(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    p.getCreatedByAvatar()
+            ));
+
+            dto.setMemberCount(memberCountMap.getOrDefault(p.getId(), 0L).intValue());
+
+            List<MemberAvatarDTO> avatars =
+                    avatarMap.getOrDefault(p.getId(), List.of())
+                            .stream()
+                            .limit(3)
+                            .toList();
+
+            dto.setMemberAvatars(avatars);
+
+            return dto;
+        });
     }
 
     @Override
@@ -80,7 +175,16 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public Page<ProjectDTO> getProjectsByUsername(String username, Pageable pageable) {
+
+        pageable = PageableUtils.applyDefaultSort(
+                pageable,
+                Sort.by("createdAt").descending()
+        );
+
+        pageable = SortUtils.mapSort(pageable, PROJECT_ENTITY_SORT_MAPPING);
+
         Page<Project> projects = projectRepository.findProjectsByMemberUsername(username, pageable);
+
         return projects.map(projectMapper::toDTO);
     }
 

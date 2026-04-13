@@ -7,36 +7,41 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.envers.*;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Audited
 @Table(name = "project_member")
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class ProjectMember {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Audited
     private Long id;
 
-    // user
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private User user;
 
-    // project
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private Project project;
 
-    // role trong project
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
-    private ProjectRole role; // LEAD, MEMBER
+    @Audited
+    private ProjectRole role;
 
     @CreationTimestamp
+    @Column(name = "joined_at")
+    @NotAudited
     private LocalDateTime joinedAt;
 }
