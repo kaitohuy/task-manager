@@ -38,9 +38,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             // Validate token and extract roles
             if (!jwtUtil.isTokenExpired(jwt)) {
-                List<String> roles = jwtUtil.extractRoles(jwt);
+                List<String> authorityStrings = jwtUtil.extractAuthorities(jwt);
                 Long userId = jwtUtil.extractUserId(jwt);
-                List<SimpleGrantedAuthority> authorities = roles.stream()
+                List<SimpleGrantedAuthority> authorities = authorityStrings.stream()
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
 

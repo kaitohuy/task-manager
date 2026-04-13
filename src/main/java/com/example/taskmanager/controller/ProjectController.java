@@ -33,7 +33,7 @@ public class ProjectController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMember(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or hasPermission(#id, 'PROJECT', 'MEMBER')")
     public ResponseEntity<ProjectDTO> getProjectById(@PathVariable Long id) {
         return ResponseEntity.ok(projectService.getProjectById(id));
     }
@@ -45,20 +45,20 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isLeader(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or hasPermission(#id, 'PROJECT', 'LEADER')")
     public ResponseEntity<ProjectDTO> updateProject(@PathVariable Long id, @Valid @RequestBody CreateProjectDTO request) {
         return ResponseEntity.ok(projectService.updateProject(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isLeader(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or hasPermission(#id, 'PROJECT', 'LEADER')")
     public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
         projectService.deleteProject(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/stats")
-    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMember(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or hasPermission(#id, 'PROJECT', 'MEMBER')")
     public ResponseEntity<ProjectDashboardStatsDTO> getProjectStats(@PathVariable Long id) {
         return ResponseEntity.ok(projectService.getProjectStats(id));
     }

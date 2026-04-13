@@ -21,13 +21,13 @@ public class MeetingController {
     private final MeetingServiceImpl meetingService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMember(#request.projectId, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or hasPermission(#request.projectId, 'PROJECT', 'MEMBER')")
     public ResponseEntity<MeetingResponseDTO> createMeeting(@Valid @RequestBody CreateMeetingDTO request, Authentication authentication) {
         return ResponseEntity.ok(meetingService.createMeeting(request, authentication.getName()));
     }
 
     @GetMapping("/project/{projectId}")
-    @PreAuthorize("hasRole('ADMIN') or @projectSecurity.isMember(#projectId, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or hasPermission(#projectId, 'PROJECT', 'MEMBER')")
     public ResponseEntity<List<MeetingResponseDTO>> getMeetingsByProject(@PathVariable Long projectId) {
         return ResponseEntity.ok(meetingService.getMeetingsByProject(projectId));
     }

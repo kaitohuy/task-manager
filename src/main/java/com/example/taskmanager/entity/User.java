@@ -85,6 +85,14 @@ public class User {
     @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
     private List<Task> myTasks;
 
+    @NotAudited
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<VerificationToken> verificationTokens;
+
+    @NotAudited
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PasswordResetToken> passwordResetTokens;
+
     @Audited
     @Column(name = "enabled")
     private boolean enabled = true; // Defaulting to true for existing users, will set to false for new ones
@@ -92,4 +100,16 @@ public class User {
     @Audited
     @Column(name = "verified")
     private boolean verified = false;
+
+    @Audited
+    @Column(name = "mfa_enabled")
+    private boolean mfaEnabled = false;
+
+    @NotAudited
+    @Column(name = "mfa_secret")
+    private String mfaSecret;
+
+    @NotAudited
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserPermission> permissionOverrides;
 }

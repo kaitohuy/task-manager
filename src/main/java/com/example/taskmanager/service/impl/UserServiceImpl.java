@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -29,6 +30,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final com.example.taskmanager.repository.PermissionRepository permissionRepository;
 
     @Override
     public UserDTO createUser(CreateUserDTO request) {
@@ -112,5 +114,69 @@ public class UserServiceImpl implements UserService {
         System.out.println("username: " + username);
         User user = userRepository.findByUsername(username).orElseThrow(()-> new ResourceNotFoundException("User not found"));
         return userMapper.toDTO(user);
+    }
+
+    @Override
+    public Set<String> getUserPermissions(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        // Get permissions from Roles
+        List<String> roleNames = user.getRoles().stream()
+                .map(Enum::name)
+                .collect(java.util.stream.Collectors.toList());
+        Set<String> permissions = permissionRepository.findNamesByRoleNames(roleNames);
+        
+        // Apply individual overrides (Allow/Deny)
+        if (user.getPermissionOverrides() != null) {
+            for (com.example.taskmanager.entity.UserPermission override : user.getPermissionOverrides()) {
+                String permName = override.getPermission().getName();
+                if (override.isDenied()) {
+                    permissions.remove(permName);
+                } else {
+                    permissions.add(permName);
+                }
+            }
+        }
+        
+        return permissions;
+    }
+
+    @Override
+    public List<com.example.taskmanager.dto.request.UserPermissionDTO> getIndividualPermissionOverrides(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        if (user.getPermissionOverrides() == null) return new java.util.ArrayList<>();
+        
+        return user.getPermissionOverrides().stream()
+                .map(o -> new com.example.taskmanager.dto.request.UserPermissionDTO(o.getPermission().getId(), o.isDenied()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public void updateUserPermissions(Long userId, List<com.example.taskmanager.dto.request.UserPermissionDTO> overrides) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        // Clear existing overrides
+        if (user.getPermissionOverrides() != null) {
+            user.getPermissionOverrides().clear();
+        } else {
+            user.setPermissionOverrides(new java.util.ArrayList<>());
+        }
+        
+        for (com.example.taskmanager.dto.request.UserPermissionDTO dto : overrides) {
+            com.example.taskmanager.entity.Permission permission = permissionRepository.findById(dto.getPermissionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Permission not found: " + dto.getPermissionId()));
+            
+            com.example.taskmanager.entity.UserPermission override = new com.example.taskmanager.entity.UserPermission();
+            override.setUser(user);
+            override.setPermission(permission);
+            override.setDenied(dto.isDenied());
+            user.getPermissionOverrides().add(override);
+        }
+        
+        userRepository.save(user);
     }
 }
