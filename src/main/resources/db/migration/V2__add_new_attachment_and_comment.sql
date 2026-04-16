@@ -1,6 +1,5 @@
 
 CREATE TABLE public.task_attachments (
-    sad
     id BIGINT NOT NULL,
     task_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
